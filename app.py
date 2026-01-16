@@ -18,28 +18,78 @@ load_dotenv()
 st.set_page_config(
     page_title="LinkedIn Post AI", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Enhanced CSS for modern, professional look
+# Modern, clean CSS
 st.markdown("""
-    <style>
-    /* Main background */
+        <style>
+    /* Main container */
     .main {
-        background-color: #f3f2ef;
-        padding: 2rem 1rem;
+        background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 0.5rem 1rem 2rem 1rem;
+    }
+    
+    /* Reduce top padding from Streamlit */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 2rem;
+    }
+    
+    /* Hide sidebar */
+    [data-testid="stSidebar"] {
+        display: none;
     }
     
     /* Header styling */
+    .main-header {
+        text-align: center;
+        padding: 0.5rem 0 1rem 0;
+        margin-bottom: 1rem;
+        margin-top: 0;
+    }
+    
     h1 {
         color: #0a66c2;
+        font-weight: 800;
+        font-size: 2.5rem;
+        margin-top: 0;
+        margin-bottom: 0.25rem;
+        letter-spacing: -0.5px;
+    }
+    
+    h2 {
+        color: #1d1d1f;
         font-weight: 700;
-        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    h3 {
+        color: #1d1d1f;
+        font-weight: 600;
+        font-size: 1.2rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Card styling */
+    .config-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .config-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
     }
     
     /* Buttons */
     .stButton>button {
-        width: 100%;
         border-radius: 8px;
         background-color: #0a66c2;
         color: white;
@@ -61,6 +111,7 @@ st.markdown("""
         background-color: #057642;
         color: white;
         font-weight: 600;
+        border-radius: 8px;
     }
     
     .stDownloadButton>button:hover {
@@ -74,12 +125,14 @@ st.markdown("""
         border: 2px solid #e0e0e0;
         padding: 0.75rem;
         font-size: 1rem;
+        transition: all 0.3s ease;
     }
     
     .stTextInput>div>div>input:focus,
     .stTextArea>div>div>textarea:focus {
         border-color: #0a66c2;
         box-shadow: 0 0 0 3px rgba(10, 102, 194, 0.1);
+        outline: none;
     }
     
     /* Selectbox */
@@ -88,104 +141,47 @@ st.markdown("""
         border: 2px solid #e0e0e0;
     }
     
-    /* Sidebar - Dark mode compatible */
-    [data-testid="stSidebar"] {
-        background-color: #262730 !important;
-        border-right: 1px solid #3a3a4a;
+    /* Radio buttons */
+    .stRadio>div {
+        gap: 1rem;
     }
     
-    /* Sidebar text colors for dark mode */
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] h4,
-    [data-testid="stSidebar"] .stMarkdown,
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] label {
-        color: #fafafa !important;
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0a66c2;
     }
     
-    /* Sidebar selectbox and inputs */
-    [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stTextInput label,
-    [data-testid="stSidebar"] .stTextArea label,
-    [data-testid="stSidebar"] .stCheckbox label {
-        color: #fafafa !important;
-    }
-    
-    /* Sidebar selectbox dropdown */
-    [data-testid="stSidebar"] .stSelectbox>div>div>select {
-        background-color: #1e1e2e !important;
-        color: #fafafa !important;
-        border-color: #3a3a4a !important;
-    }
-    
-    /* Sidebar text inputs */
-    [data-testid="stSidebar"] .stTextInput>div>div>input,
-    [data-testid="stSidebar"] .stTextArea>div>div>textarea {
-        background-color: #1e1e2e !important;
-        color: #fafafa !important;
-        border-color: #3a3a4a !important;
-    }
-    
-    /* Sidebar radio buttons */
-    [data-testid="stSidebar"] .stRadio label {
-        color: #fafafa !important;
-    }
-    
-    /* Sidebar checkbox */
-    [data-testid="stSidebar"] .stCheckbox label {
-        color: #fafafa !important;
-    }
-    
-    /* Sidebar caption */
-    [data-testid="stSidebar"] .stCaption {
-        color: #b0b0b0 !important;
-    }
-    
-    /* Sidebar expander */
-    [data-testid="stSidebar"] .streamlit-expanderHeader {
-        color: #fafafa !important;
-    }
-    
-    /* Sidebar buttons */
-    [data-testid="stSidebar"] .stButton>button {
-        background-color: #0a66c2 !important;
-        color: white !important;
-    }
-    
-    [data-testid="stSidebar"] .stButton>button:hover {
-        background-color: #004182 !important;
-    }
-    
-    /* Sidebar divider */
-    [data-testid="stSidebar"] hr {
-        border-color: #3a3a4a !important;
-    }
-    
-    /* Cards and containers */
-    .metric-card {
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    [data-testid="stMetricLabel"] {
+        font-size: 0.9rem;
+        color: #666;
+        font-weight: 500;
     }
     
     /* Success/Info messages */
     .stSuccess {
         border-radius: 8px;
         padding: 1rem;
+        border-left: 4px solid #057642;
     }
     
     .stWarning {
         border-radius: 8px;
         padding: 1rem;
+        border-left: 4px solid #ffc107;
     }
     
-    /* Spinner */
-    .stSpinner {
-        margin-top: 2rem;
+    .stError {
+        border-radius: 8px;
+        padding: 1rem;
+        border-left: 4px solid #dc3545;
+    }
+    
+    .stInfo {
+        border-radius: 8px;
+        padding: 1rem;
+        border-left: 4px solid #0a66c2;
     }
     
     /* Divider */
@@ -195,91 +191,46 @@ st.markdown("""
         border-top: 2px solid #e0e0e0;
     }
     
-    /* Custom badge */
-    .badge {
+    /* Section badges */
+    .section-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        background-color: #e8f0fe;
-        color: #0a66c2;
-    }
-    
-    /* Copy button styling */
-    .copy-btn {
-        background-color: #f3f2ef;
-        color: #0a66c2;
-        border: 2px solid #0a66c2;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    
-    .copy-btn:hover {
-        background-color: #0a66c2;
-        color: white;
-    }
-    
-    /* Section headers with visual indicators */
-    .section-header {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-    
-    .section-icon {
-        width: 24px;
-        height: 24px;
+        padding: 0.4rem 1rem;
         background: linear-gradient(135deg, #0a66c2, #004182);
-        border-radius: 6px;
-        display: inline-block;
-    }
-    
-    /* Status indicators */
-    .status-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
+        color: white;
+        border-radius: 20px;
         font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin-bottom: 1rem;
     }
     
-    .status-success {
-        background-color: #d4edda;
-        color: #155724;
+    /* Preview card */
+    .preview-container {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+            border: 1px solid #e0e0e0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        max-width: 600px;
+        margin: 0 auto;
     }
     
-    .status-warning {
-        background-color: #fff3cd;
-        color: #856404;
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 2rem;
+        }
+        .config-card {
+            padding: 1rem;
+        }
     }
     
-    .status-error {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    
-    /* Action button icons using CSS */
-    .btn-icon {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        margin-right: 6px;
-        vertical-align: middle;
-    }
-    
-    /* Visual separator */
-    .visual-separator {
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #0a66c2, transparent);
-        margin: 1.5rem 0;
-    }
-    </style>
+    /* Hide Streamlit menu and footer */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+        </style>
     """, unsafe_allow_html=True)
 
 class LinkedInPostAgent:
@@ -288,8 +239,7 @@ class LinkedInPostAgent:
     def __init__(self, api_key: Optional[str] = None):
         if api_key:
             os.environ["GOOGLE_API_KEY"] = api_key
-        
-        # Keep the model as specified in original code
+
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash", 
             temperature=0.9,
@@ -302,7 +252,7 @@ class LinkedInPostAgent:
     def _load_prompt_templates(self) -> Dict[str, Dict]:
         return {
             "Personal Story": "Write a LinkedIn post sharing a personal story about {topic}. Start with a relatable moment or challenge. Build narrative with details. Share growth. End with takeaway. Authentic and vulnerable.",
-            "Quick Tips List": "Write a LinkedIn post with actionable tips about {topic}. Bold hook. List 3-5 specific tips with examples. Use emojis. End with a question.",
+            "Quick Tips List": "Write a LinkedIn post with actionable tips about {topic}. Bold hook. List 3-5 specific tips with examples. End with a question.",
             "Controversial Opinion": "Challenge common thinking about {topic}. Open with a hot take. Explain why conventional wisdom is wrong. Support with logic. End with a thought-provoking question.",
             "Behind-the-Scenes": "Reveal behind-the-scenes insights about {topic}. Share insider knowledge. Include processes. Explain why it matters. Transparent and authentic.",
             "Trend Analysis": "Analyze a trend related to {topic}. Driving forces, impact, and predictions. How should the audience respond?",
@@ -385,6 +335,8 @@ def main():
         st.session_state.post_history = []
     if 'current_post' not in st.session_state:
         st.session_state.current_post = ""
+    if 'config_expanded' not in st.session_state:
+        st.session_state.config_expanded = False
     
     api_key = os.getenv("GOOGLE_API_KEY")
     
@@ -398,90 +350,87 @@ def main():
         st.error(f"Error initializing agent: {str(e)}")
         st.stop()
 
-    # Sidebar Configuration
-    with st.sidebar:
-        st.markdown('<div class="section-header"><div class="section-icon"></div><h3>Post Configuration</h3></div>', unsafe_allow_html=True)
-        st.markdown("---")
+    # Header Section
+    st.markdown('<div class="main-header">', unsafe_allow_html=True)
+    st.title("LinkedIn Post Generator")
+    st.markdown("**Generate high-engagement, human-sounding posts in seconds**")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Configuration Section (Collapsible)
+    with st.expander("⚙️ Post Configuration", expanded=st.session_state.config_expanded):
+        st.markdown('<div class="section-badge">Settings</div>', unsafe_allow_html=True)
         
-        # Audience Selection
-        st.markdown("**Target Audience**")
-        audience_name = st.selectbox(
-            "Who is your audience?", 
-            list(agent.audiences.keys()),
-            help="Select the primary audience for your post"
-        )
-        audience_desc = agent.audiences[audience_name]
-        st.caption(f"*{audience_desc}*")
+        # Configuration in columns for better layout
+        config_col1, config_col2 = st.columns(2)
         
-        st.markdown("---")
+        with config_col1:
+            st.markdown("**Target Audience**")
+            audience_name = st.selectbox(
+                "Who is your audience?", 
+                list(agent.audiences.keys()),
+                help="Select the primary audience for your post",
+                label_visibility="collapsed"
+            )
+            audience_desc = agent.audiences[audience_name]
+            st.caption(f"*{audience_desc}*")
+            
+            st.markdown("**Content Tone**")
+            tone = st.radio(
+                "Select tone:",
+                ["Professional", "Casual", "Controversial", "Empathetic"],
+                horizontal=True,
+                label_visibility="collapsed"
+            )
         
-        # Tone Selection
-        st.markdown("**Content Tone**")
-        tone = st.radio(
-            "Select tone:",
-            ["Professional", "Casual", "Controversial", "Empathetic"],
-            horizontal=False
-        )
-        
-        st.markdown("---")
-        
-        # Length Selection
-        st.markdown("**Post Length**")
-        length = st.radio(
-            "Select length:",
-            ["Short", "Medium", "Long"],
-            index=1,
-            horizontal=False
-        )
-        
-        st.markdown("---")
+        with config_col2:
+            st.markdown("**Post Length**")
+            length = st.radio(
+                "Select length:",
+                ["Short", "Medium", "Long"],
+                index=1,
+                horizontal=True,
+                label_visibility="collapsed"
+            )
+            
+            st.markdown("**Content Style**")
+            use_custom = st.checkbox("Use custom prompt", help="Check to write your own instructions")
         
         # Template Selection
-        st.markdown("**Content Style**")
-        use_custom = st.checkbox("Use custom prompt", help="Check to write your own instructions")
-        
         if not use_custom:
+            st.markdown("**Choose Template**")
             template_name = st.selectbox(
                 "Choose a template:", 
                 list(agent.prompt_templates.keys()),
-                help="Select a pre-built template style"
+                help="Select a pre-built template style",
+                label_visibility="collapsed"
             )
             selected_prompt = agent.prompt_templates[template_name]
-            with st.expander("Template Preview"):
+            with st.expander("📋 Template Preview"):
                 st.caption(selected_prompt)
         else:
+            st.markdown("**Custom Instructions**")
             selected_prompt = st.text_area(
                 "Custom instructions:", 
                 placeholder="e.g., Write a funny, engaging post about coding that includes a personal anecdote...",
-                height=100
+                height=100,
+                label_visibility="collapsed"
             )
-        
-        st.markdown("---")
-        
-        # Post History
-        if st.session_state.post_history:
-            st.markdown('<div class="section-header"><div class="section-icon"></div><h3>Post History</h3></div>', unsafe_allow_html=True)
-            for idx, saved_post in enumerate(reversed(st.session_state.post_history[-5:]), 1):
-                if st.button(f"Load Post #{len(st.session_state.post_history) - len(st.session_state.post_history[-5:]) + idx}", 
-                           key=f"load_{idx}", use_container_width=True):
-                    st.session_state.current_post = saved_post
-                    st.rerun()
-
-    # Main Content Area
-    st.title("LinkedIn Post Generator")
-    st.markdown("**Generate high-engagement, human-sounding posts in seconds.**")
-    st.markdown('<div class="visual-separator"></div>', unsafe_allow_html=True)
     
-    # Topic Input
-    col1, col2 = st.columns([3, 1])
-    with col1:
+    st.markdown("---")
+    
+    # Topic Input and Generate Section
+    st.markdown('<div class="section-badge">Create Post</div>', unsafe_allow_html=True)
+    
+    topic_col1, topic_col2 = st.columns([4, 1])
+    with topic_col1:
         topic = st.text_input(
             "**What is your post about?**", 
             placeholder="e.g., The future of Remote Work in 2026",
-            help="Enter the main topic or theme for your LinkedIn post"
+            help="Enter the main topic or theme for your LinkedIn post",
+            label_visibility="collapsed"
         )
     
-    with col2:
+    with topic_col2:
         st.markdown("<br>", unsafe_allow_html=True)
         generate_btn = st.button("Generate Post", type="primary", use_container_width=True)
     
@@ -497,7 +446,6 @@ def main():
                     post = agent.generate_post(selected_prompt, topic, audience_desc, tone, length)
                     st.session_state['current_post'] = post
                     st.success("Post generated successfully!")
-                    st.markdown('<span class="status-badge status-success">SUCCESS</span>', unsafe_allow_html=True)
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error generating post: {str(e)}")
@@ -507,7 +455,9 @@ def main():
     if st.session_state.get('current_post'):
         st.markdown("---")
         
-        # Metrics
+        # Metrics Dashboard
+        st.markdown('<div class="section-badge">Post Analytics</div>', unsafe_allow_html=True)
+        
         char_count = len(st.session_state.current_post)
         word_count = len(st.session_state.current_post.split())
         hashtag_count = st.session_state.current_post.count('#')
@@ -524,15 +474,19 @@ def main():
             st.metric("LinkedIn Limit", f"{progress*100:.1f}%")
             st.progress(progress)
         
+        if char_count > 3000:
+            st.warning(f"Your post exceeds LinkedIn's 3000 character limit by {char_count - 3000} characters. Consider shortening it.")
+        
         st.markdown("---")
         
         # Edit Section
-        st.markdown('<div class="section-header"><div class="section-icon"></div><h2>Edit Your Post</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-badge">Edit Post</div>', unsafe_allow_html=True)
         edited_post = st.text_area(
             "Make any changes below:",
             value=st.session_state['current_post'],
             height=300,
-            help="Edit the generated post to match your style"
+            help="Edit the generated post to match your style",
+            label_visibility="collapsed"
         )
         
         # Action Buttons
@@ -553,7 +507,6 @@ def main():
                     except:
                         st.warning("Clipboard copy failed. Use download button instead.")
                 else:
-                    # Fallback: show text in code block for easy copying
                     st.code(edited_post, language=None)
                     st.info("Select and copy the text above, or use the download button.")
         
@@ -561,7 +514,7 @@ def main():
             st.download_button(
                 "Download .txt",
                 edited_post,
-                file_name=f"linkedin_post_{topic[:20].replace(' ', '_')}.txt",
+                file_name=f"linkedin_post_{topic[:20].replace(' ', '_') if topic else 'post'}.txt",
                 use_container_width=True
             )
         
@@ -573,21 +526,12 @@ def main():
         st.markdown("---")
         
         # LinkedIn Preview
-        st.markdown('<div class="section-header"><div class="section-icon"></div><h2>LinkedIn Preview</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-badge">Preview</div>', unsafe_allow_html=True)
         st.caption("How your post will look on LinkedIn")
         
         # Enhanced Preview Card
         preview_html = f"""
-        <div style="
-            background-color: #ffffff; 
-            padding: 24px; 
-            border-radius: 12px; 
-            border: 1px solid #e0e0e0; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            max-width: 600px;
-            margin: 0 auto;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        ">
+        <div class="preview-container">
             <div style="display: flex; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #e0e0e0;">
                 <div style="
                     width: 56px; 
@@ -637,9 +581,19 @@ def main():
         """
         st.markdown(preview_html, unsafe_allow_html=True)
         
-        # Warning if over limit
-        if char_count > 3000:
-            st.warning(f"Your post exceeds LinkedIn's 3000 character limit by {char_count - 3000} characters. Consider shortening it.")
+        # Post History Section
+        if st.session_state.post_history:
+            st.markdown("---")
+            st.markdown('<div class="section-badge">Post History</div>', unsafe_allow_html=True)
+            
+            history_cols = st.columns(min(3, len(st.session_state.post_history[-5:])))
+            for idx, saved_post in enumerate(reversed(st.session_state.post_history[-5:])):
+                col_idx = idx % len(history_cols)
+                with history_cols[col_idx]:
+                    if st.button(f"Load Post #{len(st.session_state.post_history) - len(st.session_state.post_history[-5:]) + idx + 1}", 
+                               key=f"load_{idx}", use_container_width=True):
+                        st.session_state.current_post = saved_post
+                        st.rerun()
 
 if __name__ == "__main__":
     main()

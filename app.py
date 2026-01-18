@@ -16,14 +16,14 @@ load_dotenv()
 
 # --- UI CONFIGURATION ---
 st.set_page_config(
-    page_title="LinkedIn Post AI", 
+    page_title="LinkedIn Post AI",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # Modern, clean CSS
 st.markdown("""
-        <style>
+    <style>
     /* Main container */
     .main {
         background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
@@ -210,7 +210,7 @@ st.markdown("""
         background: white;
         padding: 24px;
         border-radius: 12px;
-            border: 1px solid #e0e0e0;
+        border: 1px solid #e0e0e0;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         max-width: 600px;
         margin: 0 auto;
@@ -230,102 +230,276 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-        </style>
-    """, unsafe_allow_html=True)
+    </style>
+""", unsafe_allow_html=True)
 
 class LinkedInPostAgent:
-    """Interactive agent for generating LinkedIn posts with Streamlit UI"""
-    
+    """Agent for generating LinkedIn posts"""
+
     def __init__(self, api_key: Optional[str] = None):
         if api_key:
             os.environ["GOOGLE_API_KEY"] = api_key
 
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash", 
-            temperature=0.9,
-            max_output_tokens=2048
+            model="gemini-2.5-flash-lite",
+            temperature=0.7,  # Reduced for better control
+            max_output_tokens=1500  # Reduced to prevent overly long outputs
         )
-        
+
         self.prompt_templates = self._load_prompt_templates()
         self.audiences = self._load_audiences()
+        self.default_tone = "Professional"
+        self.default_length = "Medium"
 
-    def _load_prompt_templates(self) -> Dict[str, Dict]:
+    def _load_prompt_templates(self) -> Dict[str, str]:
         return {
-            "Personal Story": "Write a LinkedIn post sharing a personal story about {topic}. Start with a relatable moment or challenge. Build narrative with details. Share growth. End with takeaway. Authentic and vulnerable.",
-            "Quick Tips List": "Write a LinkedIn post with actionable tips about {topic}. Bold hook. List 3-5 specific tips with examples. End with a question.",
-            "Controversial Opinion": "Challenge common thinking about {topic}. Open with a hot take. Explain why conventional wisdom is wrong. Support with logic. End with a thought-provoking question.",
-            "Behind-the-Scenes": "Reveal behind-the-scenes insights about {topic}. Share insider knowledge. Include processes. Explain why it matters. Transparent and authentic.",
-            "Trend Analysis": "Analyze a trend related to {topic}. Driving forces, impact, and predictions. How should the audience respond?",
-            "Motivational Message": "Uplifting post about {topic}. Powerful quote/statement. Share a setback and transformation. Empowering call to action."
+            "Personal Story": (
+                "Write a LinkedIn post sharing a personal or experiential story related to {topic}. "
+                "Start with a relatable moment or challenge. "
+                "Build the narrative with specific details. "
+                "Highlight growth or learning. "
+                "End with a takeaway or reflective question."
+            ),
+            "Quick Tips List": (
+                "Write a LinkedIn post offering actionable tips about {topic}. "
+                "Open with a bold hook. "
+                "List 3–5 concise tips. "
+                "End with a question."
+            ),
+            "Controversial Opinion": (
+                "Challenge common beliefs about {topic}. "
+                "Open with a respectful hot take. "
+                "Explain your reasoning. "
+                "End with a discussion-driving question."
+            ),
+            "Behind-the-Scenes": (
+                "Reveal behind-the-scenes insights about {topic}. "
+                "Explain processes and trade-offs. "
+                "Share why it matters."
+            ),
+            "Trend Analysis": (
+                "Analyze a trend related to {topic}. "
+                "Explain what's changing, why it matters, and what to do next."
+            ),
+            "Motivational Message": (
+                "Write an uplifting post about {topic}. "
+                "Acknowledge a challenge. "
+                "Shift to growth and encouragement."
+            ),
+            "Lesson Learned": (
+                "Share a clear lesson learned about {topic}. "
+                "Explain briefly how it was learned. "
+                "End with a reflective question."
+            ),
+            "Myth vs Reality": (
+                "Debunk a common myth about {topic}. "
+                "Contrast myth vs reality clearly."
+            ),
+            "How-To / Framework": (
+                "Explain how to approach {topic} using a simple framework."
+            )
         }
-    
+
     def _load_audiences(self) -> Dict[str, str]:
         return {
-            "Startup Founders": "Entrepreneurs building tech startups, interested in growth and scaling",
-            "Marketing Professionals": "Marketers focused on strategy and brand growth",
-            "Software Developers": "Engineers and developers interested in tech and career growth",
-            "Sales Professionals": "Sales people focused on prospecting and deals",
-            "Job Seekers": "Professionals seeking career opportunities",
-            "Business Leaders": "Executives and managers interested in leadership",
-            "Freelancers": "Independent professionals building their brand",
-            "General Professional": "Broad professional audience across industries"
+            "Startup Founders": "Entrepreneurs building or scaling startups",
+            "Marketing Professionals": "Marketers focused on growth and branding",
+            "Software Developers": "Engineers focused on tech and career growth",
+            "AI / ML / GenAI Professionals": (
+                "Professionals working with AI, ML, GenAI, and LLM systems"
+            ),
+            "Data Analysts & Data Scientists": (
+                "Professionals focused on analytics, insights, and data-driven decisions"
+            ),
+            "Sales Professionals": "Sales professionals focused on revenue",
+            "Job Seekers": "Professionals exploring new roles",
+            "Business Leaders": "Managers and executives",
+            "Freelancers": "Independent professionals building a brand",
+            "Students & Early Career": "Students and early professionals",
+            "Creators & Builders": "Content creators and builders",
+            "General Professionals": "Broad professional audience"
         }
 
     def _humanization_rules(self) -> str:
         return """
-            HUMANIZATION RULES:
-            - Conversational tone, use "I", "you", "we".
-            - Short paragraphs (2-3 lines).
-            - Simple language, no buzzwords (leverage, synergy).
-            - Show personality and vary sentence length.
-        """
+AI WRITING RULES (TRANSPARENT & LINKEDIN-NATIVE):
+- Write clearly and professionally.
+- Do not pretend to be a specific human.
+- Keep paragraphs short (1–2 sentences).
+- Avoid buzzwords and clichés.
+- No fake personal experiences.
+- Focus on usefulness and clarity.
+"""
 
-    def generate_post(self, prompt: str, topic: str, audience: str, tone: str = "Professional", length: str = "Medium") -> str:
+    def generate_post(self, user_instructions: str, topic: str, audience: str, tone: str = "Professional", length: str = "Medium") -> str:
         tone_instructions = {
-            "Professional": "Use a formal, business-appropriate tone. Professional language but still engaging.",
-            "Casual": "Use a relaxed, conversational tone. Friendly and approachable like talking to a colleague.",
-            "Controversial": "Use a bold, thought-provoking tone. Challenge conventional wisdom respectfully.",
-            "Empathetic": "Use a warm, understanding tone. Show emotional intelligence and connection."
+            "Professional": (
+                "Formal, polished, and business-appropriate. "
+                "Clear and confident language with a respectful, authoritative voice."
+            ),
+            "Casual": (
+                "Relaxed and conversational. "
+                "Friendly, natural, and approachable—like talking to a colleague over coffee."
+            ),
+            "Conversational": (
+                "Personal and engaging. "
+                "Uses simple language, short sentences, and direct questions to involve the reader."
+            ),
+            "Controversial": (
+                "Bold and thought-provoking while remaining respectful. "
+                "Challenges conventional wisdom and invites discussion without being offensive."
+            ),
+            "Empathetic": (
+                "Warm, supportive, and emotionally intelligent. "
+                "Acknowledges challenges, validates experiences, and builds human connection."
+            ),
+            "Educational": (
+                "Informative and insight-driven. "
+                "Explains concepts clearly, shares practical examples, and focuses on learning value."
+            ),
+            "Inspirational": (
+                "Motivational and uplifting. "
+                "Encourages growth, confidence, and action through positive messaging."
+            ),
+            "Storytelling": (
+                "Narrative-driven and relatable. "
+                "Uses real-life experiences, lessons, and reflections to deliver a message."
+            ),
+            "Direct": (
+                "Clear, concise, and to the point. "
+                "Minimal fluff, strong statements, and actionable takeaways."
+            )
         }
-        
+
         length_instructions = {
-            "Short": "Keep it concise - 2-3 short paragraphs, maximum 150 words.",
-            "Medium": "Standard length - 3-5 paragraphs, around 200-300 words.",
-            "Long": "Detailed storytelling - 5+ paragraphs, 400+ words for deep engagement."
+            "Short": {
+                "description": "Very concise and skimmable. 1–2 short paragraphs.",
+                "word_count": "50–100 words MAXIMUM",
+                "strict_limit": 100
+            },
+            "Medium": {
+                "description": "Standard LinkedIn post. 3–5 short paragraphs with line breaks.",
+                "word_count": "150–250 words MAXIMUM",
+                "strict_limit": 250
+            },
+            "Long": {
+                "description": "In-depth, value-driven. 6–10 short paragraphs with strong spacing.",
+                "word_count": "300–500 words MAXIMUM",
+                "strict_limit": 500
+            }
         }
+
+        length_config = length_instructions.get(length, length_instructions["Medium"])
         
         final_prompt = PromptTemplate(
-            input_variables=["prompt", "topic", "audience", "rules", "tone", "length"],
+            input_variables=["user_instructions", "topic", "audience", "rules", "tone_guide", "length_desc", "word_limit"],
             template="""
-                You are an expert LinkedIn content creator known for viral, high-engagement posts.
-                
-                USER'S INSTRUCTIONS: {prompt}
-                TOPIC: {topic}
-                TARGET AUDIENCE: {audience}
-                TONE: {tone}
-                LENGTH: {length}
-                
-                {rules}
-                
-                FORMATTING REQUIREMENTS:
-                - Start with a strong, attention-grabbing hook (first 1-2 lines)
-                - Use strategic line breaks every 2-3 sentences for readability
-                - Include 3-5 relevant hashtags at the end
-                - End with an engaging call-to-action or question
-                
-                Make it sound authentically human, not AI-generated.
-            """
+You are a seasoned LinkedIn content creator known for high-engagement, human-sounding posts.
+
+CRITICAL: You MUST strictly follow the word count limit specified below. This is non-negotiable.
+
+CONTEXT & GOAL:
+Write a LinkedIn post that aligns with the user's intent and feels authentic, thoughtful, and platform-native.
+
+USER INSTRUCTIONS:
+{user_instructions}
+
+POST DETAILS:
+- Topic: {topic}
+- Target Audience: {audience}
+- Tone: {tone_guide}
+
+LENGTH REQUIREMENT (STRICTLY ENFORCE):
+{length_desc}
+ABSOLUTE WORD LIMIT: {word_limit}
+You MUST stay within this word count. Count your words as you write. Do NOT exceed this limit under any circumstances.
+
+CONTENT RULES:
+{rules}
+
+STRUCTURE & STYLE GUIDELINES:
+- Open with a strong hook in the first 1–2 lines (bold statement, question, or insight)
+- Use short paragraphs (1–2 sentences max) with frequent line breaks
+- Avoid emojis unless they naturally fit the selected tone
+- Avoid generic phrases, clichés, and obvious AI patterns
+- Use clear, simple language—write like a real LinkedIn creator, not a blog
+- Be concise and punchy - every word must earn its place
+
+ENGAGEMENT OPTIMIZATION:
+- Share a clear insight, lesson, or takeaway
+- Encourage interaction with a thoughtful question or call-to-action
+- Do not over-sell or sound promotional
+
+HASHTAGS & ENDING:
+- End the post with 3–5 relevant, niche-specific hashtags
+- Place hashtags on a new line at the very end
+- Do not include hashtags within the main content
+
+FINAL CHECK BEFORE SUBMITTING:
+1. Count the total words (excluding hashtags)
+2. Ensure you are UNDER the {word_limit} word limit
+3. The post should feel human, credible, and experience-driven
+4. Prioritize clarity, relatability, and skimmability
+5. If you're over the limit, cut content aggressively - quality over quantity
+
+Write the LinkedIn post now. Remember: STAY UNDER {word_limit} WORDS.
+"""
         )
+
         chain = final_prompt | self.llm
-        result = chain.invoke({
-            "prompt": prompt,
-            "topic": topic,
-            "audience": audience,
-            "rules": self._humanization_rules(),
-            "tone": tone_instructions.get(tone, tone_instructions["Professional"]),
-            "length": length_instructions.get(length, length_instructions["Medium"])
-        })
-        return result.content if hasattr(result, 'content') else str(result)
+
+        try:
+            result = chain.invoke({
+                "user_instructions": user_instructions.strip(),
+                "topic": topic.strip(),
+                "audience": audience.strip(),
+                "rules": self._humanization_rules(),
+                "tone_guide": tone_instructions.get(tone, tone_instructions["Professional"]),
+                "length_desc": length_config["description"],
+                "word_limit": length_config["strict_limit"]
+            })
+
+            # Handle different response types
+            if hasattr(result, "content"):
+                content = result.content
+            elif isinstance(result, str):
+                content = result
+            else:
+                content = str(result)
+            
+            content = content.strip()
+            
+            # Validate and trim if necessary
+            words = content.split()
+            word_count = len([w for w in words if not w.startswith('#')])
+            
+            if word_count > length_config["strict_limit"] * 1.2:  # If 20% over limit
+                # Extract hashtags if present
+                lines = content.split('\n')
+                hashtag_line = None
+                main_content_lines = []
+                
+                for line in lines:
+                    if line.strip().startswith('#') or all(word.startswith('#') for word in line.strip().split() if word):
+                        hashtag_line = line
+                    else:
+                        main_content_lines.append(line)
+                
+                main_content = '\n'.join(main_content_lines).strip()
+                
+                # Trim to word limit
+                main_words = main_content.split()
+                trimmed_words = main_words[:length_config["strict_limit"]]
+                content = ' '.join(trimmed_words)
+                
+                # Re-add hashtags
+                if hashtag_line:
+                    content = f"{content}\n\n{hashtag_line}"
+            
+            return content
+            
+        except Exception as e:
+            raise Exception(f"Error generating post: {str(e)}")
 
 # --- MAIN APP FLOW ---
 
@@ -337,11 +511,14 @@ def main():
         st.session_state.current_post = ""
     if 'config_expanded' not in st.session_state:
         st.session_state.config_expanded = False
+    if 'generation_triggered' not in st.session_state:
+        st.session_state.generation_triggered = False
     
     api_key = os.getenv("GOOGLE_API_KEY")
     
     if not api_key:
-        st.error("API Key not found! Please set GOOGLE_API_KEY in your .env file.")
+        st.error("⚠️ API Key not found! Please set GOOGLE_API_KEY in your .env file.")
+        st.info("💡 Create a .env file in your project root with: GOOGLE_API_KEY=your_api_key_here")
         st.stop()
     
     try:
@@ -377,8 +554,9 @@ def main():
             st.markdown("**Content Tone**")
             tone = st.radio(
                 "Select tone:",
-                ["Professional", "Casual", "Controversial", "Empathetic"],
-                horizontal=True,
+                ["Professional", "Casual", "Conversational", "Controversial", "Empathetic", 
+                 "Educational", "Inspirational", "Storytelling", "Direct"],
+                horizontal=False,
                 label_visibility="collapsed"
             )
         
@@ -432,24 +610,29 @@ def main():
     
     with topic_col2:
         st.markdown("<br>", unsafe_allow_html=True)
-        generate_btn = st.button("Generate Post", type="primary", use_container_width=True)
+        generate_btn = st.button("✨ Generate Post", type="primary", use_container_width=True)
     
     # Generate Post
     if generate_btn:
         if not topic or not topic.strip():
-            st.warning("Please enter a topic first!")
+            st.warning("⚠️ Please enter a topic first!")
         elif use_custom and not selected_prompt.strip():
-            st.warning("Please provide custom instructions or uncheck the custom prompt option!")
+            st.warning("⚠️ Please provide custom instructions or uncheck the custom prompt option!")
         else:
-            with st.spinner("Writing your post... This may take 10-20 seconds"):
+            with st.spinner("✍️ Writing your post... This may take 10-20 seconds"):
                 try:
-                    post = agent.generate_post(selected_prompt, topic, audience_desc, tone, length)
+                    post = agent.generate_post(
+                        selected_prompt, 
+                        topic, 
+                        audience_desc, 
+                        tone, 
+                        length
+                    )
                     st.session_state['current_post'] = post
-                    st.success("Post generated successfully!")
-                    st.rerun()
+                    st.success("✅ Post generated successfully!")
                 except Exception as e:
-                    st.error(f"Error generating post: {str(e)}")
-                    st.info("Make sure your API key is valid and you have internet connection.")
+                    st.error(f"❌ Error generating post: {str(e)}")
+                    st.info("💡 Make sure your API key is valid and you have internet connection.")
 
     # Display and Edit Post
     if st.session_state.get('current_post'):
@@ -464,7 +647,8 @@ def main():
         
         metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
         with metric_col1:
-            st.metric("Characters", f"{char_count:,}", f"{char_count - 3000}" if char_count > 3000 else f"{3000 - char_count} remaining")
+            delta_text = f"{char_count - 3000}" if char_count > 3000 else f"{3000 - char_count} left"
+            st.metric("Characters", f"{char_count:,}", delta_text)
         with metric_col2:
             st.metric("Words", word_count)
         with metric_col3:
@@ -472,61 +656,74 @@ def main():
         with metric_col4:
             progress = min(char_count / 3000, 1.0)
             st.metric("LinkedIn Limit", f"{progress*100:.1f}%")
-            st.progress(progress)
+        
+        # Progress bar
+        st.progress(progress)
         
         if char_count > 3000:
-            st.warning(f"Your post exceeds LinkedIn's 3000 character limit by {char_count - 3000} characters. Consider shortening it.")
+            st.warning(f"⚠️ Your post exceeds LinkedIn's 3000 character limit by {char_count - 3000} characters. Consider shortening it.")
+        
+        # Check word count against selected length
+        word_count_limits = {"Short": 100, "Medium": 250, "Long": 500}
+        if 'length' in locals() and length in word_count_limits:
+            expected_limit = word_count_limits[length]
+            if word_count > expected_limit * 1.2:
+                st.info(f"ℹ️ This post has {word_count} words, which is above the {length.lower()} length target of ~{expected_limit} words. Consider trimming for better engagement.")
         
         st.markdown("---")
         
         # Edit Section
-        st.markdown('<div class="section-badge">Edit Post</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-badge">Edit & Refine</div>', unsafe_allow_html=True)
         edited_post = st.text_area(
             "Make any changes below:",
             value=st.session_state['current_post'],
             height=300,
             help="Edit the generated post to match your style",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="edit_area"
         )
         
         # Action Buttons
         btn_col1, btn_col2, btn_col3, btn_col4 = st.columns(4)
         
         with btn_col1:
-            if st.button("Save Changes", use_container_width=True):
+            if st.button("💾 Save Changes", use_container_width=True):
                 st.session_state['current_post'] = edited_post
-                st.success("Post updated!")
-                st.rerun()
+                st.success("✅ Post updated!")
         
         with btn_col2:
-            if st.button("Copy to Clipboard", use_container_width=True):
+            if st.button("📋 Copy", use_container_width=True):
                 if HAS_PYPERCLIP:
                     try:
                         pyperclip.copy(edited_post)
-                        st.success("Copied to clipboard!")
-                    except:
-                        st.warning("Clipboard copy failed. Use download button instead.")
+                        st.success("✅ Copied to clipboard!")
+                    except Exception as e:
+                        st.warning("⚠️ Clipboard copy failed. Use download button instead.")
+                        st.code(edited_post, language=None)
                 else:
                     st.code(edited_post, language=None)
-                    st.info("Select and copy the text above, or use the download button.")
+                    st.info("💡 pyperclip not installed. Select and copy the text above, or use download.")
         
         with btn_col3:
             st.download_button(
-                "Download .txt",
+                "📥 Download",
                 edited_post,
                 file_name=f"linkedin_post_{topic[:20].replace(' ', '_') if topic else 'post'}.txt",
                 use_container_width=True
             )
         
         with btn_col4:
-            if st.button("Save to History", use_container_width=True):
-                st.session_state.post_history.append(edited_post)
-                st.success(f"Saved! ({len(st.session_state.post_history)} posts in history)")
+            if st.button("📌 Save to History", use_container_width=True):
+                if edited_post not in st.session_state.post_history:
+                    st.session_state.post_history.append(edited_post)
+                    st.success(f"✅ Saved! ({len(st.session_state.post_history)} posts in history)")
+                else:
+                    st.info("ℹ️ This post is already in history")
         
         st.markdown("---")
         
         # LinkedIn Preview
-        st.markdown('<div class="section-badge">Preview</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-badge">LinkedIn Preview</div>', unsafe_allow_html=True)
         st.caption("How your post will look on LinkedIn")
         
         # Enhanced Preview Card
@@ -572,10 +769,10 @@ def main():
                 font-size: 14px;
                 font-weight: 600;
             ">
-                <span>Like</span>
-                <span>Comment</span>
-                <span>Repost</span>
-                <span>Send</span>
+                <span>👍 Like</span>
+                <span>💬 Comment</span>
+                <span>🔁 Repost</span>
+                <span>📤 Send</span>
             </div>
         </div>
         """
@@ -586,14 +783,24 @@ def main():
             st.markdown("---")
             st.markdown('<div class="section-badge">Post History</div>', unsafe_allow_html=True)
             
-            history_cols = st.columns(min(3, len(st.session_state.post_history[-5:])))
-            for idx, saved_post in enumerate(reversed(st.session_state.post_history[-5:])):
-                col_idx = idx % len(history_cols)
-                with history_cols[col_idx]:
-                    if st.button(f"Load Post #{len(st.session_state.post_history) - len(st.session_state.post_history[-5:]) + idx + 1}", 
-                               key=f"load_{idx}", use_container_width=True):
+            # Show last 5 posts
+            recent_posts = list(reversed(st.session_state.post_history[-5:]))
+            
+            for idx, saved_post in enumerate(recent_posts):
+                post_number = len(st.session_state.post_history) - idx
+                col1, col2 = st.columns([5, 1])
+                
+                with col1:
+                    preview_text = saved_post[:100] + "..." if len(saved_post) > 100 else saved_post
+                    st.text(f"Post #{post_number}: {preview_text}")
+                
+                with col2:
+                    if st.button(f"Load", key=f"load_{idx}", use_container_width=True):
                         st.session_state.current_post = saved_post
                         st.rerun()
+            
+            if len(st.session_state.post_history) > 5:
+                st.caption(f"Showing last 5 of {len(st.session_state.post_history)} posts")
 
 if __name__ == "__main__":
     main()
